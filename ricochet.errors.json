@@ -10,6 +10,7 @@
 	"auth_timeout": 		"Client did not respond with authentication request in time.",
 	"client_auth":			"Client is not authorised.",
 	"client_connected":		"Can not connect. Client already connected.",
+	"client_connection":	"Can not send message, client not yet connected.",
 	"client_send": 			"Failed to send network message.",
 	"message_auth": 		"Client unauthenticated and unable to receive message.",
 	"message_badjson": 		"Message does not contain valid JSON syntax.",
