@@ -2,6 +2,8 @@
 
 Pub/Sub Framework for building robust TCP transport layers in node.js applications
 
+[![NPM](https://nodei.co/npm/ricochet.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/ricochet/)
+
 `npm install ricochet`
 
 ## Server
