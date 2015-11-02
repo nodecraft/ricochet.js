@@ -1,4 +1,5 @@
 ![Ricochet.js](https://nodecraft.com/assets/ricochet/ricochet-logo.png)
+
 Pub/Sub Framework for building robust TCP transport layers in node.js applications 
 
 `npm install ricochet`
