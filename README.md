@@ -11,7 +11,7 @@ Serverside methods for the Pub-Sub network.
 
 #### Initialization
 ```
-var ricochet = require('@nodecraft/ricochet');
+var ricochet = require('ricochet');
 var server = new ricochet.Server({
     delimiters: {
         message: "\"{MESSAGE}\"",

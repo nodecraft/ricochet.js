@@ -1,0 +1,19 @@
+{
+	"delimiters": {
+		"message": "\"{MESSAGE}\"",
+		"encryption": "\"{ENCRYPT}\"",
+		"authKey": "$#AUTH#$"
+	},
+	"timeouts": {
+		"reconnect": 1500,
+		"message": 5000,
+		"latencyBuffer": 500,
+		"auth": 3500,
+		"authKey": 30000
+	},
+	"encoding": "utf8",
+	"encryption": "aes-256-xts",
+	"queueSize": 1,
+	"host": "127.0.0.1",
+	"port": 23225
+}
