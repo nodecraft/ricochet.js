@@ -1,4 +1,4 @@
-![RicochetLogo](//nodecraft.com/assets/ricochet/ricochet-logo.png)
+![RicochetLogo](https://nodecraft.com/assets/ricochet/ricochet-logo.png)
 # ricochet.js
 Pub/Sub Framework for building robust TCP transport layers in node.js applications 
 
