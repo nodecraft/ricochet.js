@@ -132,8 +132,8 @@ A request handle is fired from `server.handles` which allows you to bind to spec
 
 - `timeout {local: true}` - The request reached the timeout timer and the requesting client was notified. This is used to cleanup or handle the timeout gracefully. This event should not be emitted.
 - `update {data}` - Emitted update to the request. This prevents a timeout from occuring. This may trigger multiple times (to track the progress of the request, for example).
- - `error {data}` - Emitted results of the request resulting in an server error, with no response from the client, such as an unroutable host.
- - `response {err, data}` - Emitted results of the request resulting in a response. This could be a failure, or success, but this was dictated by the client's response.
+- `error {data}` - Emitted results of the request resulting in an server error, with no response from the client, such as an unroutable host.
+- `response {err, data}` - Emitted results of the request resulting in a response. This could be a failure, or success, but this was dictated by the client's response.
 
  #### Events
 - `ready {channel: '123-abc', groups: [...]}` - Fired when the client has successfully authenticated with the server and is ready to send/receive messages.
