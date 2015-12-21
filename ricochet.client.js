@@ -17,7 +17,7 @@ var ricochetClient = function(config){
 
 	this.currentMessage = {
 		timeout: null,
-		encrypted: false
+		encrypted: true
 	};
 
 	this.status = {
@@ -108,7 +108,7 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 			to: data.to,
 			type: data.type,
 			handle: data.handle,
-			encrypted: data.encrypted || false
+			encrypted: data.encrypted || true
 		},
 		body: data.body
 	};
@@ -131,10 +131,21 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 						timeout = null;
 					}
 				});
-				_.each(['response', 'timeout', 'error'], function(event){
-					data.events.once(event, function(){
-						self.cleanupMsg(msg.headers.id);
-					});
+				data.events.once('response', function(){
+					self.cleanupMsg(msg.headers.id);
+				});
+				data.events.once('timeout', function(results){
+					if(results.local === true){
+						data.events.emit('error', self.helpers.error('message_timeout', results));
+					}
+				});
+				data.events.once('error', function(results){
+					if(results.code === 'message_timeout'){
+						data.events.emit('timeout', {
+							local: false
+						});
+					}
+					self.cleanupMsg(msg.headers.id);
 				});
 			}
 
@@ -255,13 +266,13 @@ ricochetClient.prototype.replyHandler = function(msg, callback){
 		self.outbound.push({
 			type: 'reply',
 			status: 'response',
-			encrypted: msg.headers.encrypted || false,
+			encrypted: msg.headers.encrypted || true,
 			id: msg.headers.id,
 			to: msg.headers.from,
 			handle: msg.headers.handle,
 			body: {
 				error: err,
-				data: data
+				data: data || {}
 			}
 		});
 		handler.emit('close');
@@ -274,22 +285,22 @@ ricochetClient.prototype.replyHandler = function(msg, callback){
 		self.outbound.push({
 			type: 'reply',
 			status: 'update',
-			encrypted: msg.headers.encrypted || false,
+			encrypted: msg.headers.encrypted || true,
 			id: msg.headers.id,
 			to: msg.headers.from,
 			handle: msg.headers.handle,
-			body: data
+			body: data || {}
 		});
 	});
 	handler.once('timeout', function(){
 		self.outbound.push({
 			type: 'reply',
-			status: 'timeout',
-			encrypted: msg.headers.encrypted || false,
+			status: 'error',
+			encrypted: msg.headers.encrypted || true,
 			id: msg.headers.id,
 			to: msg.headers.from,
 			handle: msg.headers.handle,
-			body: {local: false}
+			body: self.helpers.error('message_timeout')
 		});
 		handler.emit('close');
 	});
@@ -297,7 +308,7 @@ ricochetClient.prototype.replyHandler = function(msg, callback){
 		self.outbound.push({
 			type: 'reply',
 			status: 'error',
-			encrypted: msg.headers.encrypted || false,
+			encrypted: msg.headers.encrypted || true,
 			id: msg.headers.id,
 			to: msg.headers.from,
 			handle: msg.headers.handle,
@@ -427,7 +438,7 @@ ricochetClient.prototype.message = function(to, handle, data){
 	});
 	this.currentMessage = {
 		timeout: null,
-		encrypted: false
+		encrypted: true
 	};
 	return this;
 };
@@ -444,13 +455,17 @@ ricochetClient.prototype.request = function(to, handle, data){
 	});
 	this.currentMessage = {
 		timeout: null,
-		encrypted: false
+		encrypted: true
 	};
 	return req;
 };
 ricochetClient.prototype.encrypt = function(set){
 	set = set || true;
 	this.currentMessage.encrypted = set;
+	return this;
+}
+ricochetClient.prototype.insecure = function(){
+	this.currentMessage.encrypted = false;
 	return this;
 }
 ricochetClient.prototype.timeout = function(length){

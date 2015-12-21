@@ -22,6 +22,7 @@
 	"message_notfound": 	"No message found with given id.",
 	"message_norecipient": 	"No recipient found by given id.",
 	"message_self": 		"Client attempted to send message to itself.",
+	"message_timeout": 		"Request timed out.",
 	"server_inuse": 		"Server is already listening.",
 	"server_nocallback": 	"No `authCallback` callback method set."
 }
