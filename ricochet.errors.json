@@ -20,6 +20,7 @@
 	"message_malformed": 	"Malformed message received.",
 	"message_noclient": 	"Client could not be found by given id.",
 	"message_notfound": 	"No message found with given id.",
+	"message_nothandled": 	"Failed to receive message, no listeners found.",
 	"message_norecipient": 	"No recipient found by given id.",
 	"message_self": 		"Client attempted to send message to itself.",
 	"message_timeout": 		"Request timed out.",

@@ -11,6 +11,12 @@
 		"auth": 3500,
 		"authKey": 30000
 	},
+	"events": {
+		"wildcard": true,
+		"delimiter": ".",
+		"newListener": false,
+		"maxListeners": 10
+	},
 	"encoding": "utf8",
 	"encryption": "aes-256-xts",
 	"queueSize": 1,

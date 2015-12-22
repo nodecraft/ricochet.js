@@ -1,11 +1,11 @@
 'use strict';
 
 var net = require('net'),
-	events = require("events"),
 	util = require('util');
 
 var _ = require('lodash'),
-	async = require('async');
+	async = require('async'),
+	eventEmitter2 = require("eventemitter2");
 
 var ricochetClientError = require('./ricochet.error.js');
 
@@ -34,7 +34,13 @@ var ricochetClient = function(config){
 	this.msgs = {}; // map of messages and events tied to them
 	this.socket = null; // TCP socket
 
-	this.handles = new events.EventEmitter();
+	this.handles = new eventEmitter2.EventEmitter2(this.config.events);
+	this.handles.on('message_nothandled', function(msg, handler){
+		if(!handler){
+			return; // ignore messages
+		}
+		handler.emit('error', self.helpers.error('message_nothandled'));
+	});
 	this.outbound = async.queue(function(data, cb){
 		return self.sendMessage(data, function(err){
 			if(err){
@@ -60,9 +66,9 @@ var ricochetClient = function(config){
 		});
 	}, this.config.queueSize);
 
-	events.EventEmitter.call(this);
+	eventEmitter2.EventEmitter2.call(this);
 };
-util.inherits(ricochetClient, events.EventEmitter);
+util.inherits(ricochetClient, eventEmitter2.EventEmitter2);
 
 // Private Methods
 
@@ -228,11 +234,15 @@ ricochetClient.prototype.handleMessage = function(msg, callback){
 	var self = this;
 	switch(msg.headers.type){
 		case "message":
-			self.handles.emit(msg.headers.handle, msg.body, msg);
+			if(!self.handles.emit(msg.headers.handle, msg.body, msg)){
+				self.handles.emit('message_nothandled', msg);
+			}
 		break;
 		case "request":
 			var handler = self.replyHandler(msg);
-			self.handles.emit(msg.headers.handle, msg.body, handler, msg);
+			if(!self.handles.emit(msg.headers.handle, msg.body, handler, msg)){
+				self.handles.emit('message_nothandled', msg, handler);
+			}
 		break;
 		case "reply":
 			if(!self.msgs[msg.headers.id]){
@@ -254,7 +264,7 @@ ricochetClient.prototype.handleMessage = function(msg, callback){
 }
 ricochetClient.prototype.replyHandler = function(msg, callback){
 	var self = this,
-		handler = new events.EventEmitter();
+		handler = new eventEmitter2.EventEmitter2();
 
 	var timeout = null;
 	if(msg.headers.timeout){
@@ -443,7 +453,7 @@ ricochetClient.prototype.message = function(to, handle, data){
 	return this;
 };
 ricochetClient.prototype.request = function(to, handle, data){
-	var req = new events.EventEmitter();
+	var req = new eventEmitter2.EventEmitter2();
 	this.outbound.push({
 		type: 'request',
 		events: req,
@@ -486,6 +496,10 @@ ricochetClient.prototype.flushHandles = function(){
 // Deprecated
 ricochetClient.prototype.handle = function(handle, callback){
 	return this.handles.on(handle, callback);
+};
+ricochetClient.prototype.notHandled = function(callback){
+	this.handles.removeAllListeners('message_nothandled');
+	return this.handles.on('message_nothandled', callback);
 };
 
 

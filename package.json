@@ -1,6 +1,6 @@
 {
   "name": "ricochet",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Pub/Sub Framework for building robust TCP transport layers in node.js applications ",
   "main": "ricochet.js",
   "scripts": {
@@ -8,12 +8,13 @@
   },
   "author": "NodeCraft Hosting LLC",
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/nodecraft/ricochet.js"
+    "type": "git",
+    "url": "https://github.com/nodecraft/ricochet.js"
   },
   "license": "MIT",
   "dependencies": {
     "async": "1.4.2",
+    "eventemitter2": "0.4.14",
     "lodash": "3.10.1"
   }
 }

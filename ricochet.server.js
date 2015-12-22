@@ -1,11 +1,11 @@
 'use strict';
 
 var net = require('net'),
-	events = require("events"),
 	util = require('util');
 
 var _ = require('lodash'),
-	async = require('async');
+	async = require('async'),
+	eventEmitter2 = require("eventemitter2");
 
 var ricochetServerError = require('./ricochet.error.js');
 var ipv6Mask = /^\:\:ffff\:((?:[0-9]{1,3}\.){3}[0-9]{1,3})$/;
@@ -28,10 +28,10 @@ var ricochetServer = function(config){
 		return self.bufferMessage(data, cb);
 	}, this.config.queueSize);
 
-	events.EventEmitter.call(this);
+	eventEmitter2.EventEmitter2.call(this);
 	this.setupMessageError();
 };
-util.inherits(ricochetServer, events.EventEmitter);
+util.inherits(ricochetServer, eventEmitter2.EventEmitter2);
 
 
 // Private Methods
@@ -353,17 +353,8 @@ ricochetServer.prototype.handleMessage = function(data, callback){
 }
 // Public Methods
 
-ricochetServer.prototype.listen = function(port, address, callback){
+ricochetServer.prototype.listen = function(options, callback){
 	var self = this;
-	if(port && !address && !callback){
-		callback = port;
-		port = this.config.port;
-		address = this.config.host;
-	}
-	if(address && !callback){
-		callback = address;
-		address = this.config.host;
-	}
 	callback = callback || function(){};
 
 	if(!this.authCallback){
@@ -385,7 +376,7 @@ ricochetServer.prototype.listen = function(port, address, callback){
 			return self.emit(event, data);
 		});
 	});
-	return self.server.listen(port, address, callback);
+	return self.server.listen(options, callback);
 }
 
 ricochetServer.prototype.close = function(callback){
