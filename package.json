@@ -1,6 +1,6 @@
 {
   "name": "ricochet",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Pub/Sub Framework for building robust TCP transport layers in node.js applications ",
   "main": "ricochet.js",
   "scripts": {
@@ -15,6 +15,7 @@
   "dependencies": {
     "async": "1.4.2",
     "eventemitter2": "0.4.14",
-    "lodash": "3.10.1"
+    "lodash": "3.10.1",
+    "json-stream": "1.0.0"
   }
 }

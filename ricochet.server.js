@@ -5,7 +5,8 @@ var net = require('net'),
 
 var _ = require('lodash'),
 	async = require('async'),
-	eventEmitter2 = require("eventemitter2");
+	eventEmitter2 = require('eventemitter2'),
+	jsonStream = require('json-stream');
 
 var ricochetServerError = require('./ricochet.error.js');
 var ipv6Mask = /^\:\:ffff\:((?:[0-9]{1,3}\.){3}[0-9]{1,3})$/;
@@ -25,7 +26,13 @@ var ricochetServer = function(config){
 	this.unroutedCallback = null;
 
 	this.bufferQueue = async.queue(function(data, cb){
-		return self.bufferMessage(data, cb);
+		return self.processMessage(data, function(err){
+			if(err){
+				err.raw = data;
+				self.emit('messageError', err);
+			}
+			return cb();
+		});
 	}, this.config.queueSize);
 
 	eventEmitter2.EventEmitter2.call(this);
@@ -133,7 +140,7 @@ ricochetServer.prototype.handleConnection = function(client){
 
 	setTimeout(function(){
 		if(self.clients[client.id] && !self.clients[client.id].auth){
-			self.emit('clientAuthFail', self.helpers.error('auth_timeout'));
+			self.emit('clientAuthFail', self.helpers.error('auth_timeout', {ip: client.remoteAddress}));
 			return self.destroyClient(client.id);
 		}
 	}, self.config.timeouts.auth);
@@ -159,11 +166,15 @@ ricochetServer.prototype.handleConnection = function(client){
 	client.on('close', function(){
 		return self.destroyClient(client.id);
 	});
-	client.on('data', function(msg){
+
+	var json = client.pipe(jsonStream());
+
+	json.on('data', function(msg){
 		var data = {
 			id: client.id,
 			message: msg
 		};
+
 		self.emit('clientInput', data);
 		return self.bufferQueue.push(data);
 	});
@@ -217,7 +228,7 @@ ricochetServer.prototype.handleAuth = function(data, callback){
 		return callback(null, results);
 	});
 }
-ricochetServer.prototype.bufferMessage = function(data, callback){
+/*ricochetServer.prototype.bufferMessage = function(data, callback){
 	var self = this;
 	callback = callback || function(){};
 
@@ -241,7 +252,7 @@ ricochetServer.prototype.bufferMessage = function(data, callback){
 		});
 	}
 	return callback();
-}
+}*/
 ricochetServer.prototype.processMessage = function(data, callback){
 	var self = this;
 	callback = callback || function(){};
@@ -250,11 +261,11 @@ ricochetServer.prototype.processMessage = function(data, callback){
 		return callback(self.helpers.error('message_noclient'));
 	}
 
-	this.helpers.parseJSON(data.message, function(err, jsonResult){
+	/*this.helpers.parseJSON(data.message, function(err, jsonResult){
 		if(err){
 			return callback(self.helpers.error('message_badjson', {Error: err}));
-		}
-		data.message = jsonResult;
+		}*/
+		//data.message = jsonResult;
 		if(!self.clients[data.id].auth){
 			return self.handleAuth(data, function(err, results){
 				var msg = {
@@ -283,7 +294,7 @@ ricochetServer.prototype.processMessage = function(data, callback){
 			});
 		}
 		self.parseMessage(data, callback);
-	});
+	//});
 }
 ricochetServer.prototype.parseMessage = function(data, callback){
 	if(!this.clients[data.id]){

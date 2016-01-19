@@ -1,6 +1,6 @@
 {
 	"delimiters": {
-		"message": "\"{MESSAGE}\"",
+		"message": "\n",
 		"encryption": "\"{ENCRYPT}\"",
 		"authKey": "$#AUTH#$"
 	},

@@ -5,7 +5,8 @@ var net = require('net'),
 
 var _ = require('lodash'),
 	async = require('async'),
-	eventEmitter2 = require("eventemitter2");
+	eventEmitter2 = require('eventemitter2'),
+	jsonStream = require('json-stream');
 
 var ricochetClientError = require('./ricochet.error.js');
 
@@ -182,12 +183,12 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 		return callback();
 	});
 }
-ricochetClient.prototype.receiveMessage = function(rawMsg, callback){
+ricochetClient.prototype.receiveMessage = function(msg, callback){
 	var self = this;
-	this.helpers.parseJSON(rawMsg, function(err, msg){
+	/*this.helpers.parseJSON(rawMsg, function(err, msg){
 		if(err){
 			return callback(self.helpers.error('message_badjson', {Error: err}));
-		}
+		}*/
 		if(!self.status.auth){
 			if(typeof msg.auth == 'boolean'){
 				self.status.auth = msg.auth;
@@ -209,7 +210,7 @@ ricochetClient.prototype.receiveMessage = function(rawMsg, callback){
 			return callback(self.helpers.error('message_auth'));
 		}
 		return self.parseMessage(msg, callback);
-	});
+	//});
 }
 ricochetClient.prototype.parseMessage = function(msg, callback){
 	var self = this;
@@ -405,16 +406,19 @@ ricochetClient.prototype.connect = function(options, callback){
 	self.socket.setNoDelay(options.noDelay || true);
 	self.socket.setEncoding(this.config.encoding);
 
-	self.socket.on('data', function(data){
+	var json = self.socket.pipe(jsonStream());
+
+	json.on('data', function(data){
 		self.emit('input', data);
-		self.buffer += String(data).trim();
-		if(self.buffer.slice(-self.config.delimiters.message.length) === self.config.delimiters.message){
+		self.inbound.push(data);
+		//self.buffer += String(data).trim();
+		/*if(self.buffer.slice(-self.config.delimiters.message.length) === self.config.delimiters.message){
 			var msgs = self.buffer.split(self.config.delimiters.message);
 			self.buffer = msgs.splice(msgs.length-1); // return and slice last part (incomplete message)
 			_.each(msgs, function(msg){
 				self.inbound.push(msg);
 			});
-		}
+		}*/
 	});
 	self.socket.on('close', function(err){
 		self.reset();
