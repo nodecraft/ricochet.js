@@ -228,31 +228,6 @@ ricochetServer.prototype.handleAuth = function(data, callback){
 		return callback(null, results);
 	});
 }
-/*ricochetServer.prototype.bufferMessage = function(data, callback){
-	var self = this;
-	callback = callback || function(){};
-
-	if(!this.clients[data.id]){
-		self.emit('messageError', self.helpers.error('message_noclient', {message: data}));
-		return callback();
-	}
-
-	self.clients[data.id].buffer += String(data.message);
-	if(self.clients[data.id].buffer.slice(-self.config.delimiters.message.length) === self.config.delimiters.message){
-		var msgs = self.clients[data.id].buffer.split(self.config.delimiters.message);
-		self.clients[data.id].buffer = msgs.splice(msgs.length-1); // return and slice last part (incomplete message)
-		_.each(msgs, function(message){
-			// allow these to be called outside of the queue
-			return self.processMessage({id: data.id, message: message}, function(err){
-				if(err){
-					err.rawMessage = data.message;
-					self.emit('messageError', err);
-				}
-			});
-		});
-	}
-	return callback();
-}*/
 ricochetServer.prototype.processMessage = function(data, callback){
 	var self = this;
 	callback = callback || function(){};
@@ -261,40 +236,37 @@ ricochetServer.prototype.processMessage = function(data, callback){
 		return callback(self.helpers.error('message_noclient'));
 	}
 
-	/*this.helpers.parseJSON(data.message, function(err, jsonResult){
-		if(err){
-			return callback(self.helpers.error('message_badjson', {Error: err}));
-		}*/
-		//data.message = jsonResult;
-		if(!self.clients[data.id].auth){
-			return self.handleAuth(data, function(err, results){
-				var msg = {
-					auth: false
-				}
-				if(!err){
-					self.clients[data.id].auth = true;
-					_.each(['privateKey', 'publicKey', 'channel', 'groups'], function(type){
-						self.clients[data.id][type] = results[type];
+	if(!self.clients[data.id].auth){
+		return self.handleAuth(data, function(err, results){
+			var msg = {
+				auth: false
+			}
+			if(!err){
+				self.clients[data.id].auth = true;
+				_.each(['privateKey', 'publicKey', 'channel', 'groups'], function(type){
+					self.clients[data.id][type] = results[type];
+				});
+				msg.auth = true;
+				msg.channel = results.channel;
+				msg.groups = results.groups;
+			}
+			if(!self.clients[data.id] || !self.clients[data.id].socket){
+				return callback()
+			}
+			self.clients[data.id].socket.write(JSON.stringify(msg) + self.config.delimiters.message, function(){
+				if(err){
+					self.emit('clientAuthFail', err);
+					self.destroyClient(data.id);
+				}else{
+					self.emit('clientReady', {
+						id: data.id
 					});
-					msg.auth = true;
-					msg.channel = results.channel;
-					msg.groups = results.groups;
 				}
-				self.clients[data.id].socket.write(JSON.stringify(msg) + self.config.delimiters.message, function(){
-					if(err){
-						self.emit('clientAuthFail', err);
-						self.destroyClient(data.id);
-					}else{
-						self.emit('clientReady', {
-							id: data.id
-						});
-					}
-					return callback(err); // remove error to prevent wrong event
-				})
-			});
-		}
-		self.parseMessage(data, callback);
-	//});
+				return callback(err); // remove error to prevent wrong event
+			})
+		});
+	}
+	self.parseMessage(data, callback);
 }
 ricochetServer.prototype.parseMessage = function(data, callback){
 	if(!this.clients[data.id]){
