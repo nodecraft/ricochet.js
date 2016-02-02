@@ -385,14 +385,7 @@ ricochetClient.prototype.connect = function(options, callback){
 		firstConnect = true;
 	}
 
-	self.socket = net.connect(self.options, function(err){
-		if(err){
-			self.reset();
-			self.socket = null;
-			self.emit('connectionFail', err);
-			return callback(err);
-		}
-
+	self.socket = net.connect(self.options, function(){
 		self.status.connected = true;
 		if(firstConnect){
 			self.emit('connected');
