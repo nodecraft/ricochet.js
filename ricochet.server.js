@@ -90,6 +90,9 @@ ricochetServer.prototype.getClientMap = function(){
 	return map;
 }
 ricochetServer.prototype.resolveIP = function(ip, family){
+	if(ip === undefined){
+		return 'socket';
+	}
 	if(family == 'IPv6'){
 		var test = ipv6Mask.exec(ip);
 		if(test && test[1] && net.isIPv4(test[1])){
