@@ -11,6 +11,7 @@ module.exports = function(config){
 
 	return {
 		error: function(code, obj){
+			code = 'ricochet.' + code;
 			if(!errors[code]){
 				throw new ricochetHelpersError("No error code found to match: " + code);
 			}

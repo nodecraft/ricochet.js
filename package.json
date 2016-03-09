@@ -1,6 +1,6 @@
 {
   "name": "ricochet",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Pub/Sub Framework for building robust TCP transport layers in node.js applications ",
   "main": "ricochet.js",
   "scripts": {
