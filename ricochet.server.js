@@ -200,7 +200,7 @@ ricochetServer.prototype.handleAuth = function(data, callback){
 				provided: results.groups,
 			}));
 		}
-		if(results.ip !== client.ip){
+		if(results.ip && results.ip !== client.ip){
 			return callback(self.helpers.error('auth_ip', {
 				provided: client.ip,
 				expected: results.ip
