@@ -44,6 +44,7 @@ var ricochetClient = function(config){
 	});
 	this.outbound = async.queue(function(data, cb){
 		return self.sendMessage(data, function(err){
+			cb(err);
 			if(err){
 				self.emit('sendError', {
 					Error: err.Error,
@@ -51,11 +52,11 @@ var ricochetClient = function(config){
 					message: data
 				});
 			}
-			return cb(err);
 		});
 	}, this.config.queueSize);
 	this.inbound = async.queue(function(data, cb){
 		return self.receiveMessage(data, function(err){
+			cb(err);
 			if(err){
 				self.emit('receiveError', {
 					Error: err.Error,
@@ -63,7 +64,6 @@ var ricochetClient = function(config){
 					message: data
 				});
 			}
-			return cb(err);
 		});
 	}, this.config.queueSize);
 
@@ -266,6 +266,15 @@ ricochetClient.prototype.handleMessage = function(msg, callback){
 ricochetClient.prototype.replyHandler = function(msg, callback){
 	var self = this,
 		handler = new eventEmitter2.EventEmitter2();
+
+	handler.inherit = function(event){
+		var self = this;
+		handler.onAny(function(){
+			var args = Array.prototype.slice.call(arguments);
+			args.unshift(this.event);
+			event.emit.apply(self, args);
+		});
+	};
 
 	var timeout = null;
 	if(msg.headers.timeout){
