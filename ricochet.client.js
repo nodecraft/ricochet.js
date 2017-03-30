@@ -407,7 +407,7 @@ ricochetClient.prototype.connect = function(options, callback){
 			return callback();
 		});
 		self.socket.setNoDelay(options.noDelay || true);
-		self.socket.setEncoding(this.config.encoding);
+		self.socket.setEncoding(self.config.encoding);
 
 		var json = self.socket.pipe(jsonStream());
 
