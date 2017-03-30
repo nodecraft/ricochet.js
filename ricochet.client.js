@@ -1,6 +1,7 @@
 'use strict';
 
 var net = require('net'),
+	dns = require('dns'),
 	util = require('util');
 
 var _ = require('lodash'),
@@ -393,52 +394,63 @@ ricochetClient.prototype.connect = function(options, callback){
 		self.options = options;
 		firstConnect = true;
 	}
-
-	self.socket = net.connect(self.options, function(){
-		self.status.connected = true;
-		if(firstConnect){
-			self.emit('connected');
-		}else{
-			self.emit('reconnected');
-		}
-		// send authentication
-		self.sendAuth();
-		return callback();
-	});
-	self.socket.setNoDelay(options.noDelay || true);
-	self.socket.setEncoding(this.config.encoding);
-
-	var json = self.socket.pipe(jsonStream());
-
-	json.on('data', function(data){
-		self.emit('input', data);
-		self.inbound.push(data);
-		//self.buffer += String(data).trim();
-		/*if(self.buffer.slice(-self.config.delimiters.message.length) === self.config.delimiters.message){
-			var msgs = self.buffer.split(self.config.delimiters.message);
-			self.buffer = msgs.splice(msgs.length-1); // return and slice last part (incomplete message)
-			_.each(msgs, function(msg){
-				self.inbound.push(msg);
-			});
-		}*/
-	});
-	self.socket.on('close', function(err){
-		self.reset();
-		self.socket = null;
-		if(!self.status.activeConnection){
-			return self.emit('close', err);
-		}
-		setTimeout(function(){
-			self.connect();
-		}, self.config.timeouts.reconnect);
-		self.emit('disconnected', err);
-	});
-
-	// forward socket events
-	_.each(['error', 'timeout', 'connect', 'drain', 'end', 'lookup'], function(event){
-		self.socket.on(event, function(data){
-			return self.emit(event, data);
+	var connect = function(){
+		self.socket = net.connect(self.options, function(){
+			self.status.connected = true;
+			if(firstConnect){
+				self.emit('connected');
+			}else{
+				self.emit('reconnected');
+			}
+			// send authentication
+			self.sendAuth();
+			return callback();
 		});
+		self.socket.setNoDelay(options.noDelay || true);
+		self.socket.setEncoding(this.config.encoding);
+
+		var json = self.socket.pipe(jsonStream());
+
+		json.on('data', function(data){
+			self.emit('input', data);
+			self.inbound.push(data);
+			//self.buffer += String(data).trim();
+			/*if(self.buffer.slice(-self.config.delimiters.message.length) === self.config.delimiters.message){
+				var msgs = self.buffer.split(self.config.delimiters.message);
+				self.buffer = msgs.splice(msgs.length-1); // return and slice last part (incomplete message)
+				_.each(msgs, function(msg){
+					self.inbound.push(msg);
+				});
+			}*/
+		});
+		self.socket.on('close', function(err){
+			self.reset();
+			self.socket = null;
+			if(!self.status.activeConnection){
+				return self.emit('close', err);
+			}
+			setTimeout(function(){
+				self.connect();
+			}, self.config.timeouts.reconnect);
+			self.emit('disconnected', err);
+		});
+
+		// forward socket events
+		_.each(['error', 'timeout', 'connect', 'drain', 'end', 'lookup'], function(event){
+			self.socket.on(event, function(data){
+				return self.emit(event, data);
+			});
+		});
+	}
+
+	if(!self.options.host){
+		return connect();
+	}
+	dns.lookup(self.options.host, function(err, address, family){
+		if(address){
+			self.options.host = address;
+		}
+		return connect();
 	});
 }
 
