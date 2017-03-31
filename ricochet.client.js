@@ -268,14 +268,12 @@ ricochetClient.prototype.replyHandler = function(msg, callback){
 	var self = this,
 		handler = new eventEmitter2.EventEmitter2();
 
-	handler.inherit = function(event){
+	handler.inherit = function(otherHandler){
 		var self = this;
 		handler.onAny(function(){
-			var args = Array.prototype.slice.call(arguments);
-			args.unshift(this.event);
-			event.emit.apply(self, args);
+			otherHandler.emit.apply(self, Array.prototype.slice.call(arguments));
 		});
-	};
+	}
 
 	var timeout = null;
 	if(msg.headers.timeout){
