@@ -1,10 +1,11 @@
 {
   "name": "ricochet",
-  "version": "0.3.13",
+  "version": "0.3.14",
   "description": "Pub/Sub Framework for building robust TCP transport layers in node.js applications ",
   "main": "ricochet.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint ."
   },
   "author": "NodeCraft Hosting LLC",
   "repository": {
@@ -13,9 +14,15 @@
   },
   "license": "MIT",
   "dependencies": {
-    "async": "2.2.0",
-    "eventemitter2": "4.1.0",
-    "lodash": "4.17.4",
-    "json-stream": "1.0.0"
+    "async": "2.x.x",
+    "eventemitter2": "4.x.x",
+    "lodash": "4.x.x",
+    "json-stream": "^1.0.0"
+  },
+   "devDependencies": {
+    "eslint": "3.19.0",
+    "eslint-config-nodecraft": "1.0.1",
+    "eslint-plugin-json": "1.2.0",
+    "eslint-plugin-node": "4.2.2"
   }
 }

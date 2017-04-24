@@ -15,7 +15,7 @@ var ricochetClient = function(config){
 	var self = this;
 
 	this.options = null;
-	this.config =_.defaults(config || {}, require('./ricochet.defaults.json'));
+	this.config = _.defaults(config || {}, require('./ricochet.defaults.json'));
 
 	this.currentMessage = {
 		timeout: null,
@@ -45,26 +45,30 @@ var ricochetClient = function(config){
 	});
 	this.outbound = async.queue(function(data, cb){
 		return self.sendMessage(data, function(err){
-			cb(err);
 			if(err){
-				self.emit('sendError', {
-					Error: err.Error,
-					code: err.code,
-					message: data
-				});
+				try{
+					self.emit('sendError', {
+						Error: err.Error,
+						code: err.code,
+						message: data
+					});
+				}catch(e){}
 			}
+			return cb(err);
 		});
 	}, this.config.queueSize);
 	this.inbound = async.queue(function(data, cb){
 		return self.receiveMessage(data, function(err){
-			cb(err);
 			if(err){
-				self.emit('receiveError', {
-					Error: err.Error,
-					code: err.code,
-					message: data
-				});
+				try{
+					self.emit('receiveError', {
+						Error: err.Error,
+						code: err.code,
+						message: data
+					});
+				}catch(e){}
 			}
+			return cb(err);
 		});
 	}, this.config.queueSize);
 
@@ -80,7 +84,7 @@ ricochetClient.prototype.createMsgID = function(){
 		return this.createMsgID();
 	}
 	return code;
-}
+};
 ricochetClient.prototype.cleanupMsg = function(id){
 	if(this.msgs[id]){
 		if(this.msgs[id].events){
@@ -93,7 +97,7 @@ ricochetClient.prototype.cleanupMsg = function(id){
 		}
 		delete this.msgs[id];
 	}
-}
+};
 
 ricochetClient.prototype.sendMessage = function(data, callback){
 	var self = this;
@@ -104,7 +108,9 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 	}
 	if(!self.status.auth){
 		if(this.helpers.has(data, ['publicKey', 'authKey', 'authStamp'])){
-			self.emit('message', data);
+			try{
+				self.emit('message', data);
+			}catch(e){}
 			return this.socket.write(JSON.stringify(data) + self.config.delimiters.message, 'utf8', callback);
 		}
 		return callback(self.helpers.error('client_auth'));
@@ -127,7 +133,7 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 	switch(data.type){
 		case "reply":
 			msg.headers.status = data.status;
-		break;
+			break;
 		case "request":
 			var timeout = null;
 
@@ -149,9 +155,11 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 				});
 				data.events.once('error', function(results){
 					if(results.code === 'message_timeout'){
-						data.events.emit('timeout', {
-							local: false
-						});
+						try{
+							data.events.emit('timeout', {
+								local: false
+							});
+						}catch(e){}
 					}
 					self.cleanupMsg(msg.headers.id);
 				});
@@ -163,9 +171,11 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 					msg.headers.timeout = self.config.timeouts.message;
 				}
 				timeout = setTimeout(function(){
-					data.events.emit('timeout', {
-						local: true
-					});
+					try{
+						data.events.emit('timeout', {
+							local: true
+						});
+					}catch(e){}
 				}, msg.headers.timeout + self.config.timeouts.latencyBuffer);
 			}
 
@@ -173,7 +183,7 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 				events: data.events || null,
 				timeout: timeout
 			};
-		break;
+			break;
 	}
 
 	return self.socket.write(JSON.stringify(msg) + self.config.delimiters.message, self.config.encoding, function(err){
@@ -183,42 +193,46 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 		}
 		return callback();
 	});
-}
+};
 ricochetClient.prototype.receiveMessage = function(msg, callback){
 	var self = this;
 	/*this.helpers.parseJSON(rawMsg, function(err, msg){
 		if(err){
 			return callback(self.helpers.error('message_badjson', {Error: err}));
 		}*/
-		if(!self.status.auth){
-			if(typeof msg.auth == 'boolean'){
-				self.status.auth = msg.auth;
-				if(msg.auth && self.helpers.has(msg, ['channel', 'groups'])){
-					self.status.channel = msg.channel;
-					self.status.groups = msg.groups;
+	if(!self.status.auth){
+		if(typeof msg.auth === 'boolean'){
+			self.status.auth = msg.auth;
+			if(msg.auth && self.helpers.has(msg, ['channel', 'groups'])){
+				self.status.channel = msg.channel;
+				self.status.groups = msg.groups;
+				try{
 					self.emit('ready', {
 						channel: msg.channel,
 						groups: msg.groups
 					});
-				}else{
+				}catch(e){}
+			}else{
+				try{
 					self.emit('authFail', {
 						message: msg
 					});
-					self.socket.end();
-				}
-				return callback();
+				}catch(e){}
+				self.socket.end();
 			}
-			return callback(self.helpers.error('message_auth'));
+			return callback();
 		}
-		return self.parseMessage(msg, callback);
+		return callback(self.helpers.error('message_auth'));
+	}
+	return self.parseMessage(msg, callback);
 	//});
-}
+};
 ricochetClient.prototype.parseMessage = function(msg, callback){
 	var self = this;
 	if(!this.helpers.has(msg, ['headers', 'body']) || !this.helpers.has(msg.headers, ['to', 'from', 'id', 'type'])){
 		return callback(self.helpers.error('message_malformed'));
 	}
-	if(msg.headers.to != this.status.channel){
+	if(msg.headers.to !== this.status.channel){
 		return callback(self.helpers.error('message_channel'));
 	}
 	if(this.status.groups !== true && _.intersection(msg.headers.groups, this.status.groups).length === 0){
@@ -231,21 +245,25 @@ ricochetClient.prototype.parseMessage = function(msg, callback){
 		}
 	}
 	return this.handleMessage(msg, callback);
-}
+};
 ricochetClient.prototype.handleMessage = function(msg, callback){
 	var self = this;
 	switch(msg.headers.type){
 		case "message":
-			if(!self.handles.emit(msg.headers.handle, msg.body, msg)){
-				self.handles.emit('message_nothandled', msg);
-			}
-		break;
+			try{
+				if(!self.handles.emit(msg.headers.handle, msg.body, msg)){
+					self.handles.emit('message_nothandled', msg);
+				}
+			}catch(e){}
+			break;
 		case "request":
 			var handler = self.replyHandler(msg);
-			if(!self.handles.emit(msg.headers.handle, msg.body, handler, msg)){
-				self.handles.emit('message_nothandled', msg, handler);
-			}
-		break;
+			try{
+				if(!self.handles.emit(msg.headers.handle, msg.body, handler, msg)){
+					self.handles.emit('message_nothandled', msg, handler);
+				}
+			}catch(e){}
+			break;
 		case "reply":
 			if(!self.msgs[msg.headers.id]){
 				return callback(self.helpers.error('message_notfound'));
@@ -254,16 +272,18 @@ ricochetClient.prototype.handleMessage = function(msg, callback){
 				return callback(self.helpers.error('message_malformed'));
 			}
 			if(self.msgs[msg.headers.id].events){
-				if(msg.headers.status == 'response'){
-					self.msgs[msg.headers.id].events.emit(msg.headers.status, msg.body.error, msg.body.data);
-				}else{
-					self.msgs[msg.headers.id].events.emit(msg.headers.status, msg.body);
-				}
+				try{
+					if(msg.headers.status === 'response'){
+						self.msgs[msg.headers.id].events.emit(msg.headers.status, msg.body.error, msg.body.data);
+					}else{
+						self.msgs[msg.headers.id].events.emit(msg.headers.status, msg.body);
+					}
+				}catch(e){}
 			}
-		break;
+			break;
 	}
 	return callback();
-}
+};
 ricochetClient.prototype.replyHandler = function(msg, callback){
 	var self = this,
 		handler = new eventEmitter2.EventEmitter2();
@@ -273,7 +293,7 @@ ricochetClient.prototype.replyHandler = function(msg, callback){
 		handler.onAny(function(){
 			otherHandler.emit.apply(self, Array.prototype.slice.call(arguments));
 		});
-	}
+	};
 
 	var timeout = null;
 	if(msg.headers.timeout){
@@ -344,14 +364,14 @@ ricochetClient.prototype.replyHandler = function(msg, callback){
 		handler = null;
 	});
 	return handler;
-}
+};
 
 ricochetClient.prototype.reset = function(){
 	this.status.connected = false;
 	this.status.auth = false;
 	this.status.channel = null;
 	this.status.groups = [];
-}
+};
 
 ricochetClient.prototype.sendAuth = function(){
 	if(this.status.auth){ return; }
@@ -364,7 +384,7 @@ ricochetClient.prototype.sendAuth = function(){
 		authKey: self.helpers.encrypt(self.options.privateKey, self.options.authKey, timestamp),
 		authStamp: timestamp
 	});
-}
+};
 
 // Public Methods
 
@@ -376,7 +396,7 @@ ricochetClient.prototype.connect = function(options, callback){
 		return callback(self.helpers.error('client_connected'));
 	}
 
-	options =_.defaults(options || {}, {
+	options = _.defaults(options || {}, {
 		host: '127.0.0.1',
 		port: 23225,
 		authKey: '',
@@ -395,11 +415,13 @@ ricochetClient.prototype.connect = function(options, callback){
 	var connect = function(){
 		self.socket = net.connect(self.options, function(){
 			self.status.connected = true;
-			if(firstConnect){
-				self.emit('connected');
-			}else{
-				self.emit('reconnected');
-			}
+			try{
+				if(firstConnect){
+					self.emit('connected');
+				}else{
+					self.emit('reconnected');
+				}
+			}catch(e){}
 			// send authentication
 			self.sendAuth();
 			return callback();
@@ -410,16 +432,8 @@ ricochetClient.prototype.connect = function(options, callback){
 		var json = self.socket.pipe(jsonStream());
 
 		json.on('data', function(data){
-			self.emit('input', data);
 			self.inbound.push(data);
-			//self.buffer += String(data).trim();
-			/*if(self.buffer.slice(-self.config.delimiters.message.length) === self.config.delimiters.message){
-				var msgs = self.buffer.split(self.config.delimiters.message);
-				self.buffer = msgs.splice(msgs.length-1); // return and slice last part (incomplete message)
-				_.each(msgs, function(msg){
-					self.inbound.push(msg);
-				});
-			}*/
+			self.emit('input', data);
 		});
 		self.socket.on('close', function(err){
 			self.reset();
@@ -439,7 +453,7 @@ ricochetClient.prototype.connect = function(options, callback){
 				return self.emit(event, data);
 			});
 		});
-	}
+	};
 
 	if(!self.options.host){
 		return connect();
@@ -450,7 +464,7 @@ ricochetClient.prototype.connect = function(options, callback){
 		}
 		return connect();
 	});
-}
+};
 
 
 ricochetClient.prototype.message = function(to, handle, data){
@@ -489,22 +503,22 @@ ricochetClient.prototype.encrypt = function(set){
 	set = set || true;
 	this.currentMessage.encrypted = set;
 	return this;
-}
+};
 ricochetClient.prototype.insecure = function(){
 	this.currentMessage.encrypted = false;
 	return this;
-}
+};
 ricochetClient.prototype.timeout = function(length){
 	length = length || this.config.timeouts.message;
 	this.currentMessage.timeout = length;
 	return this;
-}
+};
 
 ricochetClient.prototype.close = function(callback){
 	callback = callback || function(){};
 	this.status.activeConnection = false;
-	return this.socket.end(callback)
-}
+	return this.socket.end(callback);
+};
 ricochetClient.prototype.flushHandles = function(){
 	return this.handles.removeAllListeners();
 };

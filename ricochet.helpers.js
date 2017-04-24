@@ -1,10 +1,9 @@
 'use strict';
-
-
 module.exports = function(config){
-	var _ = require('lodash'),
-		util = require('util'),
+	var	util = require('util'),
 		crypto = require('crypto');
+
+	var _ = require('lodash');
 
 	var ricochetHelpersError = require('./ricochet.error.js');
 	var errors = require('./ricochet.errors.json');
@@ -25,7 +24,7 @@ module.exports = function(config){
 			return err;
 		},
 		has: function(obj, check){
-			if(typeof check == 'string'){
+			if(typeof check === 'string'){
 				return _.has(obj, check);
 			}
 			var result = true;
@@ -33,7 +32,7 @@ module.exports = function(config){
 				if(!_.has(obj, single)){
 					result = false;
 				}
-			})
+			});
 			return result;
 		},
 		md5: function(data){
@@ -45,7 +44,7 @@ module.exports = function(config){
 					return false;
 				}
 				return msg;
-			}
+			};
 			var msg, error;
 			try{
 				msg = JSON.parse(data);
@@ -77,10 +76,10 @@ module.exports = function(config){
 
 			var text = "",
 		   		possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-		   	if(seperator != false){
-		    	regex = new RegExp('.{'+seperator+'}', 'g');
+		   	if(seperator !== false){
+		    	regex = new RegExp('.{' + seperator + '}', 'g');
 		   	}
-		    for(var i=0; i < length; i++){
+		    for(var i = 0; i < length; i++){
 		        text += possible.charAt(Math.floor(Math.random() * possible.length));
 		    }
 			return seperator && text.match(regex).join('-') || text;
