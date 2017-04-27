@@ -141,7 +141,7 @@ ricochetServer.prototype.handleConnection = function(client){
 	};
 
 	process.nextTick(function(){
-		this.emit('clientConnected', {
+		self.emit('clientConnected', {
 			id: client.id,
 			ip: client.remoteAddress
 		});
