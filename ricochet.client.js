@@ -46,13 +46,13 @@ var ricochetClient = function(config){
 	this.outbound = async.queue(function(data, cb){
 		return self.sendMessage(data, function(err){
 			if(err){
-				try{
+				process.nextTick(function(){
 					self.emit('sendError', {
 						Error: err.Error,
 						code: err.code,
 						message: data
 					});
-				}catch(e){}
+				});
 			}
 			return cb(err);
 		});
@@ -60,13 +60,13 @@ var ricochetClient = function(config){
 	this.inbound = async.queue(function(data, cb){
 		return self.receiveMessage(data, function(err){
 			if(err){
-				try{
+				process.nextTick(function(){
 					self.emit('receiveError', {
 						Error: err.Error,
 						code: err.code,
 						message: data
 					});
-				}catch(e){}
+				});
 			}
 			return cb(err);
 		});
@@ -108,9 +108,9 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 	}
 	if(!self.status.auth){
 		if(this.helpers.has(data, ['publicKey', 'authKey', 'authStamp'])){
-			try{
+			process.nextTick(function(){
 				self.emit('message', data);
-			}catch(e){}
+			});
 			return this.socket.write(JSON.stringify(data) + self.config.delimiters.message, 'utf8', callback);
 		}
 		return callback(self.helpers.error('client_auth'));
@@ -155,11 +155,11 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 				});
 				data.events.once('error', function(results){
 					if(results.code === 'message_timeout'){
-						try{
+						process.nextTick(function(){
 							data.events.emit('timeout', {
 								local: false
 							});
-						}catch(e){}
+						});
 					}
 					self.cleanupMsg(msg.headers.id);
 				});
@@ -171,11 +171,11 @@ ricochetClient.prototype.sendMessage = function(data, callback){
 					msg.headers.timeout = self.config.timeouts.message;
 				}
 				timeout = setTimeout(function(){
-					try{
+					process.nextTick(function(){
 						data.events.emit('timeout', {
 							local: true
 						});
-					}catch(e){}
+					});
 				}, msg.headers.timeout + self.config.timeouts.latencyBuffer);
 			}
 
@@ -206,18 +206,18 @@ ricochetClient.prototype.receiveMessage = function(msg, callback){
 			if(msg.auth && self.helpers.has(msg, ['channel', 'groups'])){
 				self.status.channel = msg.channel;
 				self.status.groups = msg.groups;
-				try{
+				process.nextTick(function(){
 					self.emit('ready', {
 						channel: msg.channel,
 						groups: msg.groups
 					});
-				}catch(e){}
+				});
 			}else{
-				try{
+				process.nextTick(function(){
 					self.emit('authFail', {
 						message: msg
 					});
-				}catch(e){}
+				});
 				self.socket.end();
 			}
 			return callback();
@@ -250,19 +250,19 @@ ricochetClient.prototype.handleMessage = function(msg, callback){
 	var self = this;
 	switch(msg.headers.type){
 		case "message":
-			try{
+			process.nextTick(function(){
 				if(!self.handles.emit(msg.headers.handle, msg.body, msg)){
 					self.handles.emit('message_nothandled', msg);
 				}
-			}catch(e){}
+			});
 			break;
 		case "request":
 			var handler = self.replyHandler(msg);
-			try{
+			process.nextTick(function(){
 				if(!self.handles.emit(msg.headers.handle, msg.body, handler, msg)){
 					self.handles.emit('message_nothandled', msg, handler);
 				}
-			}catch(e){}
+			});
 			break;
 		case "reply":
 			if(!self.msgs[msg.headers.id]){
@@ -272,13 +272,13 @@ ricochetClient.prototype.handleMessage = function(msg, callback){
 				return callback(self.helpers.error('message_malformed'));
 			}
 			if(self.msgs[msg.headers.id].events){
-				try{
+				process.nextTick(function(){
 					if(msg.headers.status === 'response'){
 						self.msgs[msg.headers.id].events.emit(msg.headers.status, msg.body.error, msg.body.data);
 					}else{
 						self.msgs[msg.headers.id].events.emit(msg.headers.status, msg.body);
 					}
-				}catch(e){}
+				});
 			}
 			break;
 	}
@@ -415,13 +415,13 @@ ricochetClient.prototype.connect = function(options, callback){
 	var connect = function(){
 		self.socket = net.connect(self.options, function(){
 			self.status.connected = true;
-			try{
+			process.nextTick(function(){
 				if(firstConnect){
 					self.emit('connected');
 				}else{
 					self.emit('reconnected');
 				}
-			}catch(e){}
+			});
 			// send authentication
 			self.sendAuth();
 			return callback();

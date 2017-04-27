@@ -29,9 +29,9 @@ var ricochetServer = function(config){
 		return self.processMessage(data, function(err){
 			if(err){
 				err.raw = data;
-				try{
+				process.nextTick(function(){
 					self.emit('messageError', err);
-				}catch(e){}
+				});
 			}
 			return cb();
 		});
@@ -109,11 +109,11 @@ ricochetServer.prototype.destroyClient = function(id){
 		if(self.clients[id].socket){
 			self.clients[id].socket.end();
 		}
-		try{
+		process.nextTick(function(){
 			self.emit('clientDisconnected', {
 				id: id
 			});
-		}catch(e){}
+		});
 		delete self.clients[id];
 	}
 };
@@ -140,18 +140,18 @@ ricochetServer.prototype.handleConnection = function(client){
 		}
 	};
 
-	try{
+	process.nextTick(function(){
 		this.emit('clientConnected', {
 			id: client.id,
 			ip: client.remoteAddress
 		});
-	}catch(e){}
+	});
 
 	setTimeout(function(){
 		if(self.clients[client.id] && !self.clients[client.id].auth){
-			try{
+			process.nextTick(function(){
 				self.emit('clientAuthFail', self.helpers.error('auth_timeout', {ip: client.remoteAddress}));
-			}catch(e){}
+			});
 			return self.destroyClient(client.id);
 		}
 	}, self.config.timeouts.auth);
@@ -185,9 +185,9 @@ ricochetServer.prototype.handleConnection = function(client){
 			id: client.id,
 			message: msg
 		};
-		try{
+		process.nextTick(function(){
 			self.emit('clientInput', data);
-		}catch(e){}
+		});
 		return self.bufferQueue.push(data);
 	});
 };
@@ -267,16 +267,16 @@ ricochetServer.prototype.processMessage = function(data, callback){
 			}
 			self.clients[data.id].socket.write(JSON.stringify(msg) + self.config.delimiters.message, function(){
 				if(err){
-					try{
+					process.nextTick(function(){
 						self.emit('clientAuthFail', err);
-					}catch(e){}
+					});
 					self.destroyClient(data.id);
 				}else{
-					try{
+					process.nextTick(function(){
 						self.emit('clientReady', {
 							id: data.id
 						});
-					}catch(e){}
+					});
 				}
 				return callback(err); // remove error to prevent wrong event
 			});
@@ -343,12 +343,12 @@ ricochetServer.prototype.handleMessage = function(data, callback){
 		self.stat(data.message.headers.from, 'sent');
 		self.stat(data.message.headers.to, 'received');
 
-		try{
+		process.nextTick(function(){
 			self.emit('message', {
 				id: clientMap[data.message.headers.to],
 				message: data.message
 			});
-		}catch(e){}
+		});
 		return callback();
 	});
 };
